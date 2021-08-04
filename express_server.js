@@ -137,6 +137,14 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+  
+app.post("/login", (req, res) => { 
+  //res.redirect("/login");
+});
+
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
