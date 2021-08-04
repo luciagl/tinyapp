@@ -11,9 +11,9 @@
         <a class="nav-item nav-link" href="/register">Register</a>
       </div>
     </div>
-    <% if (locals.username) { %>
+    <% if (locals.user) { %>
       <span style="padding-left: 0.5cm; padding-right: 0.5cm;"> 
-        Logged In As: <%= username %>
+        Logged In As: <%= user.email %>
         </span>
         <a class="btn btn-primary" href="/logout">Logout</a>
     <% } else { %>

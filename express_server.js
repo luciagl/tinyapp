@@ -15,12 +15,34 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = { 
+//   "userRandomID": {
+//     id: "userRandomID", 
+//     email: "user@example.com", 
+//     password: "purple-monkey-dinosaur"
+//   },
+//  "user2RandomID": {
+//     id: "user2RandomID", 
+//     email: "user2@example.com", 
+//     password: "dishwasher-funk"
+//   }
+};
+
 const generateRandomString = function() {
   return 'xxxxxx'.replace(/[x]/g, function(c) {
     let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 };
+
+const lookUpByEmail = function(email) {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -41,14 +63,14 @@ app.get("/hello", (req, res) => {
 app.get("/urls", (req, res) => {
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_new", templateVars);
 });
@@ -57,7 +79,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 });
@@ -88,6 +110,31 @@ app.post("/urls", (req, res) => {
 
 app.get("/register", (req, res) => {
   res.render("registration");
+});
+
+app.post("/register", (req, res) => {
+  if ((req.body.email === '') && (req.body.password === '')) {
+    res.statusCode = 400;
+    res.send("Email or password is empty!");
+    return;
+  }
+  
+  if (lookUpByEmail(req.body.email)) {
+    res.statusCode = 400;
+    res.send("Email already registered!");
+    return;
+  }
+
+  let id = generateRandomString();
+  let user = {
+    id: id,
+    email: req.body.email,
+    password: req.body.password
+  };
+  users[id] = user;
+  res.cookie("user_id", id);
+  console.log(users);
+  res.redirect("/urls");
 });
 
 app.get("/u/:shortURL", (req, res) => {
