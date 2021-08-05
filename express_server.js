@@ -12,12 +12,12 @@ app.set("view engine", "ejs");
 
 const urlDatabase = {
   b6UTxQ: {
-      longURL: "https://www.tsn.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
   },
   i3BoGr: {
-      longURL: "https://www.google.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
   }
 };
 
@@ -50,6 +50,17 @@ const lookUpByEmail = function(email) {
   return false;
 };
 
+const urlsForUser = function(id) {
+  let urls = {};
+  for (let shortUrl in urlDatabase) {
+    let url = urlDatabase[shortUrl];
+    if (url.userID === id) {
+      urls[shortUrl] = url;
+    }
+  }
+  return urls;
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -67,8 +78,17 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    let templateVars = {
+      error: "Please, login or register first."
+    };
+
+    res.render('error', templateVars);
+    return;
+  }
+
   const templateVars = {
-    urls: urlDatabase,
+    urls: urlsForUser(req.cookies["user_id"]),
     user: users[req.cookies["user_id"]]
   };
   res.render("urls_index", templateVars);
@@ -87,6 +107,13 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  if (urlDatabase[req.params.shortURL].userID !== req.cookies["user_id"]) {
+    const templateVars = {
+      error: "Please, log in or register."
+    };
+    res.render('error', templateVars);
+    return;
+  }
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL].longURL,
@@ -95,7 +122,7 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-app.post("/urls/:shortURL", (req, res) => {
+app.post("/urls/:s  hortURL", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
   urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   res.redirect('/urls/' + req.params.shortURL);
@@ -117,7 +144,7 @@ app.get("/login", (req, res) => {
   if (req.cookies["user_id"]) {
     res.redirect('/urls');
     return;
-  } 
+  }
 
   res.render("login");
 });
@@ -147,7 +174,7 @@ app.get("/register", (req, res) => {
   if (req.cookies["user_id"]) {
     res.redirect('/urls');
     return;
-  } 
+  }
 
   res.render("registration");
 });
@@ -191,6 +218,14 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  if (urlDatabase[req.params.shortURL].userID !== req.cookies['user_id']) {
+    let templateVars = {
+      error: "Please, log in or register."
+    };
+    res.render('error', templateVars);
+    return;
+  }
+
   delete urlDatabase[req.params.shortURL];
   res.redirect('/urls');
 });
