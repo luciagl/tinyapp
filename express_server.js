@@ -15,15 +15,15 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-const users = { 
+const users = {
 //   "userRandomID": {
-//     id: "userRandomID", 
-//     email: "user@example.com", 
+//     id: "userRandomID",
+//     email: "user@example.com",
 //     password: "purple-monkey-dinosaur"
 //   },
 //  "user2RandomID": {
-//     id: "user2RandomID", 
-//     email: "user2@example.com", 
+//     id: "user2RandomID",
+//     email: "user2@example.com",
 //     password: "dishwasher-funk"
 //   }
 };
@@ -38,11 +38,11 @@ const generateRandomString = function() {
 const lookUpByEmail = function(email) {
   for (let user in users) {
     if (users[user].email === email) {
-      return true;
+      return users[user];
     }
   }
   return false;
-}
+};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -92,12 +92,22 @@ app.post("/urls/:shortURL", (req, res) => {
 
 app.post("/login", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  let user = lookUpByEmail(req.body.email);
+  if (user && user.password === req.body.password) {
+    res.cookie("user_id", user.id);
+    res.redirect('/urls');
+  } else {
+    res.statusCode = 403;
+    res.send("No such user or incorrect password!");
+  }
+});
+
+app.get("/login", (req, res) => {
+  res.render("login");
 });
 
 app.get("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
@@ -136,15 +146,7 @@ app.post("/register", (req, res) => {
   console.log(users);
   res.redirect("/urls");
 });
-
-app.get("/login", (req, res) => {
-  res.render("login");
-});
   
-app.post("/login", (req, res) => { 
-  //res.redirect("/login");
-});
-
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
