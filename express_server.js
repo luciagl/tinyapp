@@ -44,6 +44,7 @@ const users = {
 //   }
 };
 
+// generate random string
 const generateRandomString = function() {
   return 'xxxxxx'.replace(/[x]/g, function(c) {
     let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -51,6 +52,7 @@ const generateRandomString = function() {
   });
 };
 
+// gives a list of urls for particular user
 const urlsForUser = function(id) {
   let urls = {};
   for (let shortUrl in urlDatabase) {
@@ -129,6 +131,7 @@ app.post("/urls/:s  hortURL", (req, res) => {
   res.redirect('/urls/' + req.params.shortURL);
 });
 
+// login form
 app.post("/login", (req, res) => {
   console.log(req.body);
   let user = helpers.lookUpByEmail(req.body.email, users);
@@ -180,6 +183,7 @@ app.get("/register", (req, res) => {
   res.render("registration");
 });
 
+// register new user
 app.post("/register", (req, res) => {
   if ((req.body.email === '') && (req.body.password === '')) {
     res.statusCode = 400;
