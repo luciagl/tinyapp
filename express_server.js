@@ -1,20 +1,20 @@
-//const cookieSession = require('cookie-session');
+const cookieSession = require('cookie-session');
 const express = require("express");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+//const cookieParser = require('cookie-parser');
+//app.use(cookieParser());
 
-/*
+const helpers = require('./helpers.js');
+
 app.use(cookieSession({
   name: 'session',
   secret: 'ygug65rfyuvt7f7t'
 }));
-*/
 
 app.set("view engine", "ejs");
 
@@ -51,15 +51,6 @@ const generateRandomString = function() {
   });
 };
 
-const lookUpByEmail = function(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return false;
-};
-
 const urlsForUser = function(id) {
   let urls = {};
   for (let shortUrl in urlDatabase) {
@@ -88,7 +79,7 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     let templateVars = {
       error: "Please, login or register first."
     };
@@ -98,26 +89,26 @@ app.get("/urls", (req, res) => {
   }
 
   const templateVars = {
-    urls: urlsForUser(req.cookies["user_id"]),
-    user: users[req.cookies["user_id"]]
+    urls: urlsForUser(req.session.user_id),
+    user: users[req.session.user_id]
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.redirect('/login');
     return;
   }
   
   const templateVars = {
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID !== req.cookies["user_id"]) {
+  if (urlDatabase[req.params.shortURL].userID !== req.session.user_id) {
     const templateVars = {
       error: "Please, log in or register."
     };
@@ -127,23 +118,22 @@ app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL].longURL,
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
   res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:s  hortURL", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  console.log(req.body);
   urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   res.redirect('/urls/' + req.params.shortURL);
 });
 
 app.post("/login", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  let user = lookUpByEmail(req.body.email);
-  //if (user && user.password === req.body.password) {
+  console.log(req.body);
+  let user = helpers.lookUpByEmail(req.body.email, users);
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
-    res.cookie("user_id", user.id);
+    req.session.user_id = user.id;
     res.redirect('/urls');
   } else {
     res.statusCode = 403;
@@ -152,7 +142,7 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect('/urls');
     return;
   }
@@ -161,28 +151,28 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  delete req.session.user_id;
   res.redirect('/urls');
 });
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.statusCode = 403;
     res.send("Access denied!");
     return;
   }
 
-  console.log(req.body);  // Log the POST request body to the console
+  console.log(req.body);
   let shortUrl = generateRandomString();
   urlDatabase[shortUrl] = {
     longURL: req.body.longURL,
-    userID: req.cookies['user_id']
+    userID: req.session.user_id
   };
   res.redirect('/urls/' + shortUrl);
 });
 
 app.get("/register", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect('/urls');
     return;
   }
@@ -197,7 +187,7 @@ app.post("/register", (req, res) => {
     return;
   }
   
-  if (lookUpByEmail(req.body.email)) {
+  if (helpers.lookUpByEmail(req.body.email, users)) {
     res.statusCode = 400;
     res.send("Email already registered!");
     return;
@@ -213,7 +203,7 @@ app.post("/register", (req, res) => {
     password: hashedPassword
   };
   users[id] = user;
-  res.cookie("user_id", id);
+  req.session.user_id = id;
   console.log(users);
   res.redirect("/urls");
 });
@@ -232,7 +222,7 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID !== req.cookies['user_id']) {
+  if (urlDatabase[req.params.shortURL].userID !== req.session.user_id) {
     let templateVars = {
       error: "Please, log in or register."
     };
