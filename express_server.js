@@ -1,3 +1,4 @@
+//const cookieSession = require('cookie-session');
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -8,7 +9,16 @@ app.use(bodyParser.urlencoded({extended: true}));
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
+/*
+app.use(cookieSession({
+  name: 'session',
+  secret: 'ygug65rfyuvt7f7t'
+}));
+*/
+
 app.set("view engine", "ejs");
+
+const bcrypt = require('bcrypt');
 
 const urlDatabase = {
   b6UTxQ: {
@@ -131,7 +141,8 @@ app.post("/urls/:s  hortURL", (req, res) => {
 app.post("/login", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
   let user = lookUpByEmail(req.body.email);
-  if (user && user.password === req.body.password) {
+  //if (user && user.password === req.body.password) {
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
     res.cookie("user_id", user.id);
     res.redirect('/urls');
   } else {
@@ -193,10 +204,13 @@ app.post("/register", (req, res) => {
   }
 
   let id = generateRandomString();
+  let hashedPassword = bcrypt.hashSync(req.body.password, 10);
+
+  console.log(hashedPassword);
   let user = {
     id: id,
     email: req.body.email,
-    password: req.body.password
+    password: hashedPassword
   };
   users[id] = user;
   res.cookie("user_id", id);
